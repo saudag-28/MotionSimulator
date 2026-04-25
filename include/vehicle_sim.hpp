@@ -99,13 +99,17 @@ class Simulator {
 
         // analytical form which uses SE(2)
         void updatePoseExact(agent& a) {
-            if (a.yawRate < 1e-6) {
+            if (fabs(a.yawRate) < 1e-6) {
                 circleRotate(a);
             } 
             else {
                 a.x = a.x + (a.speed/a.yawRate) * (sin(a.heading + a.yawRate*dt) - sin(a.heading));
-                a.y = a.y + (a.speed/a.yawRate) * (cos(a.heading + a.yawRate*dt) - cos(a.heading));
+                a.y = a.y + (a.speed/a.yawRate) * (-cos(a.heading + a.yawRate*dt) + cos(a.heading));
                 a.heading = a.heading + (a.yawRate * dt);
+
+                a.heading = fmod(a.heading, 2*M_PI);
+                if (a.heading < 0)
+                    a.heading += 2*M_PI;
             }
         }
 };

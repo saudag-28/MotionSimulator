@@ -7,8 +7,9 @@
 //      b. collision model based check
 
 
-#include "vehicle_sim.hpp"
+#include "include/vehicle_sim.hpp"
 
+std::string path = "C:/Users/gsaud/OneDrive/Desktop/C++/system_design/MotionSimulator/res";
 
 int main(int argc, char* argv[]) {
 
@@ -84,20 +85,20 @@ int main(int argc, char* argv[]) {
         }
 
         if (arg == "4") {
-            std::ofstream file("C:/Users/gsaud/OneDrive/Desktop/C++/system_design/circle.csv");
+            std::ofstream file(path + "/circle_.csv");
 
             agent a1;
-            a1.x = 10;
+            a1.x = 1;
             a1.y = 0;
-            a1.speed = 4.0;   // to get radius of _, r = v/w = speed/yawRate
-            a1.yawRate = 2.0;
+            a1.speed = 0.5;   // to get radius of _, r = v/w = speed/yawRate
+            a1.yawRate = 0.5;
             a1.heading = 0.0;
             
             Simulator square;
 
             // total steps required to complete full circle
             double total_time = 2*M_PI/a1.yawRate;
-            double total_steps = static_cast<int>(std::round(total_time/square.getdt()));
+            int total_steps = static_cast<int>(std::round(total_time/square.getdt()));
 
             for (int t = 0; t < total_steps; ++t) {
                 
@@ -109,7 +110,9 @@ int main(int argc, char* argv[]) {
         }
 
         if (arg == "5") {
-            // std::ofstream file("C:/Users/gsaud/OneDrive/Desktop/C++/system_design/coll_1.csv");
+            
+            std::ofstream file(path + "/traj_multi.csv");
+            std::ofstream col_file(path + "/collision.txt");
             
             double collisionThre = 0.5;
             std::vector<agent> allAgents;
@@ -123,9 +126,9 @@ int main(int argc, char* argv[]) {
             allAgents.push_back(a1);
 
             agent a2;
-            a2.x = 9;
+            a2.x = 7;
             a2.y = 0;
-            a2.speed = 0.3;        // r = v/w = 0.3/0.15 = 2. Center = (9, 2)
+            a2.speed = 0.4;        // r = v/w = 0.3/0.15 = 2. Center = (9, 2)
             a2.yawRate = 0.15;
             a2.heading = 0.0;
             allAgents.push_back(a2);
@@ -136,28 +139,47 @@ int main(int argc, char* argv[]) {
             double T = 200.0;
             int total_steps = static_cast<int>(T / collision.getdt());
 
+            int collision_step = -1;
+            double cx, cy = 0;
+            bool collision_logged = false;
+
             for (int t = 0; t < total_steps; ++t) {
                 
                 for (auto& a : allAgents) {
                     collision.updatePoseExact(a);
                 }
+
+                // log trajectory
+                file << allAgents[0].x << "," << allAgents[0].y << "," << allAgents[0].heading << ","
+                << allAgents[1].x << "," << allAgents[1].y << "," << allAgents[1].heading << "\n";
                 
                 // check collision
-                for (int i = 0; i < allAgents.size(); ++i) {
-                    for (int j = i+1; j < allAgents.size(); ++j) {
-                        double dx = allAgents[i].x - allAgents[j].x;
-                        double dy = allAgents[i].y - allAgents[j].y;
-                        
-                        if ((dx*dx + dy*dy) < collisionThre) {
-                            std::cout << "Collision at step: " << t << std::endl;
-                            break;
+                if (!collision_logged) {
+                    for (int i = 0; i < allAgents.size(); ++i) {
+                        for (int j = i+1; j < allAgents.size(); ++j) {
+                            double dx = allAgents[i].x - allAgents[j].x;
+                            double dy = allAgents[i].y - allAgents[j].y;
+                            
+                            if (collision_step == -1 && (dx*dx + dy*dy) < collisionThre * collisionThre) {
+                                std::cout << "Collision at step: " << t << std::endl;
+                                collision_step = t;
+                                cx = (allAgents[i].x + allAgents[j].x)/2.0;
+                                cy = (allAgents[i].y + allAgents[j].y)/2.0;
+                                
+                                col_file << collision_step << "," << cx << "," << cy << "\n";
+
+                                collision_logged = true;
+                                break;
+                            }
                         }
+
+                        if (collision_logged) break;
                     }
                 }
-
-
-                // file << a1.x << "," << a1.y << "," << a1.heading << "\n";
+                if (collision_logged) break;
             }
+            file.close();
+            col_file.close();
         }
     }
 }
